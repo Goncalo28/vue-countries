@@ -3,9 +3,13 @@
     <form class="form">
       <input type="search" 
       v-model="search" 
-      @focus="filterCountries"/>
+      @focus="filterCountries"
+      @keyup="isLoading = !isLoading"
+    />
     </form>
-    <div v-if="filteredCountries">
+    <h2 v-if="isLoading">Loading...</h2>
+    <h2 v-if="filteredCountries.length === 0 && search.length !== 0 && !isLoading">No results found</h2>
+    <div v-if="filteredCountries && !isLoading">
       <ul class="countries-list">
         <li v-for="country in filteredCountries" 
         :key="country" 
@@ -19,32 +23,39 @@
 
 <script>
 import axios from 'axios';
+import _ from 'lodash';
 
 export default {
   data() {
     return {
       search: '',
       countries: [],
-      filteredCountries: []
+      filteredCountries: [],
+      isLoading: false
     }
   },
 
   async mounted() {
-    const fetchedData = await axios.get('https://restcountries.eu/rest/v2/all');
-    const countries = fetchedData.data.map(country => country.name);
-    this.countries = countries;
+    try {
+      const fetchedData = await axios.get('https://restcountries.eu/rest/v2/all');
+      const countries = fetchedData.data.map(country => country.name);
+      this.countries = countries;
+    } catch (error) {
+      throw new Error('An error ocurred', error);
+    }
   },
 
   methods: {
-    filterCountries() {
+    filterCountries: _.debounce( function() {
       this.filteredCountries = this.countries.filter((country) => {
         return country.toLowerCase().includes(this.search.toLowerCase())
       });
-    },
-
+      this.isLoading = false; 
+    }, 500),
+  
     setCountry(search) {
       this.search = search;
-    }
+    },
   },
 
   watch: {
