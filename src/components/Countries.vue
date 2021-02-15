@@ -24,45 +24,89 @@
 <script>
 import axios from 'axios';
 import _ from 'lodash';
+import {ref, onMounted, watch} from 'vue';
 
 export default {
-  data() {
-    return {
-      search: '',
-      countries: [],
-      filteredCountries: [],
-      isLoading: false
-    }
-  },
 
-  async mounted() {
-    try {
-      const fetchedData = await axios.get('https://restcountries.eu/rest/v2/all');
-      const countries = fetchedData.data.map(country => country.name);
-      this.countries = countries;
-    } catch (error) {
-      throw new Error('An error ocurred', error);
-    }
-  },
+  // Vue 3
+  setup() {
+    const search = ref('');
+    const countries = ref([]);
+    const filteredCountries = ref([]);
+    const isLoading = ref(false);
 
-  methods: {
-    filterCountries: _.debounce( function() {
-      this.filteredCountries = this.countries.filter((country) => {
-        return country.toLowerCase().includes(this.search.toLowerCase())
+    onMounted(async() => {
+      try {
+        const fetchedData = await axios.get('https://restcountries.eu/rest/v2/all');
+        const countriesData = fetchedData.data.map(country => country.name);
+        countries.value = countriesData;
+      } catch (error) {
+        throw new Error('An error ocurred', error);
+      }
+    })
+
+    const filterCountries = _.debounce( function() {
+      filteredCountries.value = countries.value.filter((country) => {
+        return country.toLowerCase().includes(search.value.toLowerCase());
       });
-      this.isLoading = false; 
-    }, 500),
+      isLoading.value = false; 
+    }, 500)
   
-    setCountry(search) {
-      this.search = search;
-    },
-  },
+    const setCountry = (selectedCountry) => {
+      search.value = selectedCountry;
+    }
 
-  watch: {
-    search() {
-      this.filterCountries()
+    watch(search, () => {
+      filterCountries();
+    })
+
+    return {
+      search,
+      filteredCountries,
+      isLoading,
+      filterCountries,
+      setCountry
     }
   }
+
+  // Vue 2 
+  // data() {
+  //   return {
+  //     search: '',
+  //     countries: [],
+  //     filteredCountries: [],
+  //     isLoading: false
+  //   }
+  // },
+
+  // async mounted() {
+  //   try {
+  //     const fetchedData = await axios.get('https://restcountries.eu/rest/v2/all');
+  //     const countries = fetchedData.data.map(country => country.name);
+  //     this.countries = countries;
+  //   } catch (error) {
+  //     throw new Error('An error ocurred', error);
+  //   }
+  // },
+
+  // methods: {
+  //   filterCountries: _.debounce( function() {
+  //     this.filteredCountries = this.countries.filter((country) => {
+  //       return country.toLowerCase().includes(this.search.toLowerCase())
+  //     });
+  //     this.isLoading = false; 
+  //   }, 500),
+  
+  //   setCountry(selectedCountry) {
+  //     this.search = selectedCountry;
+  //   },
+  // },
+
+  // watch: {
+  //   search() {
+  //     this.filterCountries()
+  //   }
+  // }
 }
 </script>
 
